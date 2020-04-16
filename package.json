@@ -1,15 +1,14 @@
 {
-  "name": "electron-boilerplate",
-  "productName": "Electron Boilerplate",
-  "description": "Starter for your Electron application",
-  "version": "0.0.0",
-  "private": true,
-  "author": "Mr. Gumby <mr.gumby@example.com>",
-  "copyright": "© 2017, Gumby inc.",
-  "homepage": "http://example.com",
+  "name": "halibor",
+  "productName": "halibor",
+  "description": "cross platform clipboard management application",
+  "version": "0.1.0",
+  "author": "Shohei Hagiwara <hagiwara.shohei@gmail.com>",
+  "copyright": "© 2020, Shohei Hagiwara",
+  "homepage": "https://github.com/shoheihagiwara/halibor",
   "main": "app/background.js",
   "build": {
-    "appId": "com.example.electron-boilerplate",
+    "appId": "com.github.shoheihagiwara.halibor",
     "files": [
       "app/**/*",
       "node_modules/**/*",
