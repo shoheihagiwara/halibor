@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+  <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-TTpDKWhMyt5FMOOIGNJsC3d0WKkarzVlGMvJBx2tub8="> -->
+  <!-- <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'sha256-TTpDKWhMyt5FMOOIGNJsC3d0WKkarzVlGMvJBx2tub8="> -->
+  <title>Hello World!</title>
+  <style>
+    li {
+      list-style-type: decimal;
+    }
+
+    li:hover {
+      background-color: silver;
+    }
+  </style>
+</head>
+
+<body>
+  <ul id="list"></ul>
+
+  <!-- You can also require other files to run in this process -->
+  <script type="text/javascript">
+    const {ipcRenderer, clipboard} = require('electron');
+
+    function onSelect(text) {
+      console.log(`item clicked. adding text to clipboard: [${text}]`);
+      clipboard.writeText(text);
+      ipcRenderer.send('close', null);
+    }
+
+    ipcRenderer.on('list', (event, itemList) => {
+      console.log("message: ", itemList);
+
+      const clibItemList = document.getElementById("list");
+      itemList.forEach(element => {
+        let item = document.createElement('li');
+
+        // show only the first 10 letters.
+        item.onclick = function() {onSelect(element);};
+        item.textContent = element.substring(0,10) + (element.length > 10 ? '...' : '');
+
+        // show more on tooltip
+        item.setAttribute('title', element.substring(0,100))
+
+        clibItemList.appendChild(item);
+      });
+    });
+  </script>
+</body>
+
+</html>
