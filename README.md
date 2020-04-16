@@ -2,6 +2,10 @@
 
 Cross-platform clipboard history management application.
 
+## Usage
+
+TODO
+
 ## Getting Started
 
 You can try halibor by executing follwoing commands on your local machine.
