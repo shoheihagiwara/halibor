@@ -54,7 +54,8 @@ Pull requests are welcome too.
 
 ## Acknowledgments
 
-* Inspired by [clibor](https://chigusa-web.com/).
+* Inspired by [clibor](https://chigusa-web.com/)
+* Uses [electron-boilerplate](https://github.com/szwacz/electron-boilerplate)
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)

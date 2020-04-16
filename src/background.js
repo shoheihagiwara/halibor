@@ -8,7 +8,13 @@ import path from 'path';
 
 sqlite3.verbose();
 
-const db = new sqlite3.Database(':memory:');
+const appDataDirPath = app.getPath('userData');
+
+const db = new sqlite3.Database(path.join(appDataDirPath, 'sqlite.db'), error => {
+  if (error !== null) {
+    console.log(error);
+  }
+});
 
 db.serialize(() => {
   db.run('CREATE TABLE IF NOT EXISTS clipboard (id TIMESTAMP PRIMARY KEY DEFAULT CURRENT_TIMESTAMP, text TEXT NOT NULL);');
@@ -109,6 +115,7 @@ function createWindowIfNotExists() {
 
   // and load the index.html of the app.
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  console.log("__dirnmae: ", __dirname);
 
   // send list to the windows
   mainWindow.webContents.on('did-finish-load', () => {

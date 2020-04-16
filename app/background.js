@@ -113,7 +113,12 @@ __webpack_require__.r(__webpack_exports__);
 
 
 sqlite3__WEBPACK_IMPORTED_MODULE_3___default.a.verbose();
-const db = new sqlite3__WEBPACK_IMPORTED_MODULE_3___default.a.Database(':memory:');
+const appDataDirPath = electron__WEBPACK_IMPORTED_MODULE_1__["app"].getPath('userData');
+const db = new sqlite3__WEBPACK_IMPORTED_MODULE_3___default.a.Database(path__WEBPACK_IMPORTED_MODULE_4___default.a.join(appDataDirPath, 'sqlite.db'), error => {
+  if (error !== null) {
+    console.log(error);
+  }
+});
 db.serialize(() => {
   db.run('CREATE TABLE IF NOT EXISTS clipboard (id TIMESTAMP PRIMARY KEY DEFAULT CURRENT_TIMESTAMP, text TEXT NOT NULL);');
 });
@@ -192,7 +197,8 @@ function createWindowIfNotExists() {
     frame: false
   }); // and load the index.html of the app.
 
-  mainWindow.loadFile(path__WEBPACK_IMPORTED_MODULE_4___default.a.join(__dirname, 'index.html')); // send list to the windows
+  mainWindow.loadFile(path__WEBPACK_IMPORTED_MODULE_4___default.a.join(__dirname, 'index.html'));
+  console.log("__dirnmae: ", __dirname); // send list to the windows
 
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.send('list', listOfItemsToShow);
