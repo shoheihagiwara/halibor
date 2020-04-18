@@ -25,12 +25,17 @@ const keyCodeCtrl = 29;
 // start listening on clipboard
 clipboardListener.startListening();
 
-// when clipboard is changed, add last item to DB
+// when clipboard is changed, add clipboard content to DB
+// But if the content is the same as the newest content in DB, do not add.
 clipboardListener.on('change', () => {
   console.log('Clipboard changed');
   let content = clipboard.readText();
   console.log("content: ", content);
-  let sql = `INSERT INTO clipboard (text) VALUES (?);`;
+  let sql = 
+    `INSERT INTO clipboard(text) 
+     SELECT text
+     FROM (SELECT ? AS text) AS temp
+     WHERE temp.text <> (SELECT text FROM clipboard ORDER BY id DESC LIMIT 1);`;
   console.log("SQL: ", sql);
 
   db.run(sql, content, (error) => {
