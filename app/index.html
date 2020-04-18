@@ -15,15 +15,42 @@
     li:hover {
       background-color: silver;
     }
+
+    /* Add a black background color to the top navigation */
+    .topnav {
+      background-color: #333;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    /* Style the links inside the navigation bar */
+    .topnav a {
+      float: left;
+      color: #f2f2f2;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+      font-size: 17px;
+    }
+
+    /* Change the color of links on hover */
+    .topnav a:hover {
+      background-color: #ddd;
+      color: black;
+    }
   </style>
 </head>
 
 <body>
+  <div class="topnav">
+    <a href="#home">Clipboard</a>
+    <a href="#news">Template</a>
+  </div>
   <ul id="list"></ul>
 
   <!-- You can also require other files to run in this process -->
   <script type="text/javascript">
-    const {ipcRenderer, clipboard} = require('electron');
+    const { ipcRenderer, clipboard } = require('electron');
 
     function onSelect(text) {
       console.log(`item clicked. adding text to clipboard: [${text}]`);
@@ -39,11 +66,11 @@
         let item = document.createElement('li');
 
         // show only the first 10 letters.
-        item.onclick = function() {onSelect(element);};
-        item.textContent = element.substring(0,10) + (element.length > 10 ? '...' : '');
+        item.onclick = function () { onSelect(element); };
+        item.textContent = element.substring(0, 10) + (element.length > 10 ? '...' : '');
 
         // show more on tooltip
-        item.setAttribute('title', element.substring(0,100))
+        item.setAttribute('title', element.substring(0, 100))
 
         clibItemList.appendChild(item);
       });
