@@ -18,6 +18,9 @@ const db = new sqlite3.Database(path.join(appDataDirPath, 'sqlite.db'), error =>
 
 db.serialize(() => {
   db.run('CREATE TABLE IF NOT EXISTS clipboard (id TIMESTAMP PRIMARY KEY DEFAULT CURRENT_TIMESTAMP, text TEXT NOT NULL);');
+  db.run('CREATE TABLE IF NOT EXISTS template (id INTEGER PRIMARY KEY, text TEXT NOT NULL);');
+  // for testing and debugging
+  db.run("INSERT INTO template (text) VALUES ('this is a test template.');");
 });
 
 const keyCodeCtrl = 29;
@@ -89,24 +92,6 @@ function createWindowIfNotExists() {
     return;
   }
 
-  // select data to show in window
-  let listOfItemsToShow = null;
-  db.serialize(() => {
-    db.all("SELECT text FROM clipboard ORDER BY id DESC;", (error, rows) => {
-
-      // on error
-      if (error !== null) {
-        console.log("errors in selecting: ", errors);
-        return;
-      }
-
-      // if no error, show clipboard history content
-      console.log("selected rows: ", rows);
-
-      listOfItemsToShow = rows.map(val => val.text);
-    })
-  });
-
   // create a new windows
   mainWindow = new BrowserWindow({
     width: 800,
@@ -124,7 +109,7 @@ function createWindowIfNotExists() {
 
   // send list to the windows
   mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.send('list', listOfItemsToShow);
+    mainWindow.webContents.send('clipboard');
   });
 
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {

@@ -43,37 +43,80 @@
 
 <body>
   <div class="topnav">
-    <a href="#home">Clipboard</a>
-    <a href="#news">Template</a>
+    <a onclick="onClipboardClicked()">Clipboard</a>
+    <a onclick="onTemplateClicked()">Template</a>
   </div>
   <ul id="list"></ul>
 
   <!-- You can also require other files to run in this process -->
   <script type="text/javascript">
     const { ipcRenderer, clipboard } = require('electron');
+    const sqlite3 = require('sqlite3');
+    const path = require('path');
+    const app = require('electron').remote.app
 
-    function onSelect(text) {
+    const appDataDirPath = app.getPath('userData');
+
+    const db = new sqlite3.Database(path.join(appDataDirPath, 'sqlite.db'), error => {
+      if (error !== null) {
+        console.log(error);
+      }
+    });
+
+    function selectListFromDBAndAddToList(selectQuery) {
+
+      console.log("SQL: ", selectQuery);
+
+      db.serialize(() => {
+        db.all(selectQuery, (error, rows) => {
+          // on error
+          if (error) {
+            console.log(`error when selecting: SQL[${selectQuery}] Error[${error}]`);
+            return;
+          }
+
+          // on success, extract text and make an array
+          const arrayOfText = rows.map(row => row.text);
+
+          // get ul
+          const ul = document.getElementById("list");
+          ul.innerHTML = "";
+
+          arrayOfText.forEach(text => {
+            let item = document.createElement('li');
+
+            // show only the first 30 letters.
+            const charNumInList = 30;
+            item.onclick = function () { onSelectListItem(text); };
+            item.textContent = text.substring(0, charNumInList) + (text.length > charNumInList ? '...' : '');
+
+            // show more on tooltip
+            const charNumInTooltip = 200;
+            item.setAttribute('title', text.substring(0, charNumInTooltip))
+
+            ul.appendChild(item);
+          });
+        });
+      });
+    }
+
+    function onSelectListItem(text) {
       console.log(`item clicked. adding text to clipboard: [${text}]`);
       clipboard.writeText(text);
       ipcRenderer.send('close', null);
     }
 
-    ipcRenderer.on('list', (event, itemList) => {
-      console.log("message: ", itemList);
+    function onTemplateClicked() {
+      selectListFromDBAndAddToList("SELECT text FROM template ORDER BY id ASC;");
+    }
 
-      const clibItemList = document.getElementById("list");
-      itemList.forEach(element => {
-        let item = document.createElement('li');
+    const selectFromClipboard = "SELECT text FROM clipboard ORDER BY id DESC;";
+    function onClipboardClicked() {
+      selectListFromDBAndAddToList(selectFromClipboard);
+    }
 
-        // show only the first 10 letters.
-        item.onclick = function () { onSelect(element); };
-        item.textContent = element.substring(0, 10) + (element.length > 10 ? '...' : '');
-
-        // show more on tooltip
-        item.setAttribute('title', element.substring(0, 100))
-
-        clibItemList.appendChild(item);
-      });
+    ipcRenderer.on('clipboard', (event) => {
+      selectListFromDBAndAddToList(selectFromClipboard);
     });
   </script>
 </body>
