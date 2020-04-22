@@ -19,8 +19,6 @@ const db = new sqlite3.Database(path.join(appDataDirPath, 'sqlite.db'), error =>
 db.serialize(() => {
   db.run('CREATE TABLE IF NOT EXISTS clipboard (id TIMESTAMP PRIMARY KEY DEFAULT CURRENT_TIMESTAMP, text TEXT NOT NULL);');
   db.run('CREATE TABLE IF NOT EXISTS template (id INTEGER PRIMARY KEY, text TEXT NOT NULL);');
-  // for testing and debugging
-  db.run("INSERT INTO template (text) VALUES ('this is a test template.');");
 });
 
 const keyCodeCtrl = 29;
@@ -100,6 +98,7 @@ function createWindowIfNotExists() {
       nodeIntegration: true,
     },
     frame: false,
+    alwaysOnTop: true,
   })
 
 
@@ -123,6 +122,10 @@ function createWindowIfNotExists() {
 
   mainWindow.on('blur', () => {
     console.log('event blur emitted.');
+    
+    if (mainWindow.getChildWindows().length > 0) {
+      return;
+    }
     mainWindow.close();
   });
 

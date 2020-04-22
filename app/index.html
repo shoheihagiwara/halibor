@@ -54,11 +54,27 @@
     const sqlite3 = require('sqlite3');
     const path = require('path');
     const { remote } = require('electron')
-    const { app, Menu, MenuItem } = remote
+    const { app, Menu, MenuItem, BrowserWindow } = remote
 
     // this is context menu
     const contextMenu = new Menu();
-    contextMenu.append(new MenuItem({ label: 'New template' }));
+    contextMenu.append(new MenuItem({
+      label: 'New template', click: (menuItem, browserWindow, event) => {
+        // show modale template creation window
+        const newTemplateWin = new BrowserWindow({
+          parent: browserWindow,
+          modal: true,
+          show: false,
+          webPreferences: {
+            nodeIntegration: true,
+          },
+        });
+        newTemplateWin.loadFile(path.join(__dirname, 'new_template.html'));
+        newTemplateWin.once('ready-to-show', () => {
+          newTemplateWin.show()
+        })
+      }
+    }));
     contextMenu.append(new MenuItem({ label: 'Edit' }));
     contextMenu.append(new MenuItem({ type: 'separator' }));
     contextMenu.append(new MenuItem({ label: 'Delete' }));
