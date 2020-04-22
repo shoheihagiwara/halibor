@@ -53,7 +53,15 @@
     const { ipcRenderer, clipboard } = require('electron');
     const sqlite3 = require('sqlite3');
     const path = require('path');
-    const app = require('electron').remote.app
+    const { remote } = require('electron')
+    const { app, Menu, MenuItem } = remote
+
+    // this is context menu
+    const contextMenu = new Menu();
+    contextMenu.append(new MenuItem({ label: 'New template' }));
+    contextMenu.append(new MenuItem({ label: 'Edit' }));
+    contextMenu.append(new MenuItem({ type: 'separator' }));
+    contextMenu.append(new MenuItem({ label: 'Delete' }));
 
     const appDataDirPath = app.getPath('userData');
 
@@ -63,7 +71,7 @@
       }
     });
 
-    function selectListFromDBAndAddToList(selectQuery) {
+    function selectListFromDBAndAddToList(selectQuery, optFunc) {
 
       console.log("SQL: ", selectQuery);
 
@@ -75,17 +83,20 @@
             return;
           }
 
-          // on success, extract text and make an array
-          const arrayOfText = rows.map(row => row.text);
+          // on success, extract id and text, and make an array
+          const arrayOfIdAndText = rows.map(row => [row.id, row.text]);
 
           // get ul
           const ul = document.getElementById("list");
           ul.innerHTML = "";
 
-          arrayOfText.forEach(text => {
+          arrayOfIdAndText.forEach(idText => {
             let item = document.createElement('li');
+            const id = idText[0];
+            item.setAttribute("id", id);
 
             // show only the first 30 letters.
+            const text = idText[1];
             const charNumInList = 30;
             item.onclick = function () { onSelectListItem(text); };
             item.textContent = text.substring(0, charNumInList) + (text.length > charNumInList ? '...' : '');
@@ -96,6 +107,10 @@
 
             ul.appendChild(item);
           });
+
+          if (optFunc) {
+            optFunc()
+          }
         });
       });
     }
@@ -107,10 +122,34 @@
     }
 
     function onTemplateClicked() {
-      selectListFromDBAndAddToList("SELECT text FROM template ORDER BY id ASC;");
+
+      let prepareContextMenu = () => {
+
+        console.log("hagi: preparing context menu");
+
+        // add event listener to show context menu for deleting and editing
+        const ul = document.getElementById('list');
+        for (let li of Array.from(ul.children)) {
+          console.log("adding lister to li: ", li);
+          li.addEventListener("contextmenu", event => {
+            // pop context menu
+            contextMenu.popup({ windows: remote.getCurrentWindow() })
+          })
+        }
+      }
+
+      console.log("hagi: before calling function");
+
+      // make list and set eventLister to it for context menu.
+      selectListFromDBAndAddToList(
+        "SELECT id, text FROM template ORDER BY id ASC;",
+        prepareContextMenu
+      );
+
+      console.log("hagi: after calling function");
     }
 
-    const selectFromClipboard = "SELECT text FROM clipboard ORDER BY id DESC;";
+    const selectFromClipboard = "SELECT id, text FROM clipboard ORDER BY id DESC;";
     function onClipboardClicked() {
       selectListFromDBAndAddToList(selectFromClipboard);
     }

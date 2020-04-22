@@ -116,7 +116,6 @@ function createWindowIfNotExists() {
     console.log("failed loading: ", event, errorCode, errorDescription);
   });
 
-
   mainWindow.on('closed', (e) => {
     console.log('event closed emitted.');
     mainWindow = null;
