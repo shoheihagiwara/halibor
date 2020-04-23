@@ -6,23 +6,24 @@
   <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
   <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-TTpDKWhMyt5FMOOIGNJsC3d0WKkarzVlGMvJBx2tub8="> -->
   <!-- <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'sha256-TTpDKWhMyt5FMOOIGNJsC3d0WKkarzVlGMvJBx2tub8="> -->
-  <title>New Template</title>
+  <title>Delete Template</title>
   <style>
   </style>
 </head>
 
 <body>
-  <label for="template">New Template</label><br>
+  <input id="template-id" type="text" value="" hidden>
+  <label for="template">Delete Template</label><br>
   <textarea name="template" id="template" rows="10" style="width: 100%;" required></textarea>
   <section style="text-align: right;">
-    <input id="create-button" type="button" value="Create">
+    <input id="delete-button" type="button" value="Delete">
     <input id="cancel-button" type="button" value="Cancel">
   </section>
 
   <script>
     const path = require("path");
     const sqlite3 = require("sqlite3");
-    const remote = require("electron").remote;
+    const {remote, ipcRenderer} = require("electron");
     const app = remote.app;
     const currWin = remote.getCurrentWindow();
     const db = new sqlite3.Database(path.join(app.getPath("userData"), 'sqlite.db'), error => {
@@ -31,26 +32,34 @@
       }
     });
 
-    function saveNewTemplateAndCloseWin(text) {
+    function deleteTemplateAndCloseWin(text) {
+      const templateId = document.getElementById("template-id").value;
       db.serialize(() => {
-        db.run("INSERT INTO template (text) VALUES (?);", text, () => {
+        db.run("DELETE FROM template WHERE id = ?", templateId, () => {
           currWin.close();
         });
       });
     }
 
-    // enables create button to save content and close the window
+    // enables delete button to delete template and close the window
     const templ = document.getElementById("template");
-    const createButton = document.getElementById("create-button");
+    const createButton = document.getElementById("delete-button");
     createButton.addEventListener("click", () => {
-      saveNewTemplateAndCloseWin(templ.value);
+      deleteTemplateAndCloseWin(templ.value);
     });
 
     // cancel button: close window when clicked
     const cancelButton = document.getElementById("cancel-button");
     cancelButton.addEventListener("click", () => {
       currWin.close();
-    })
+    });
+
+    // save delete target template ID
+    ipcRenderer.once('display', (event, { targetId }) => {
+      console.log("delete_template.html: display: targetId: ", targetId);
+      const templateId = document.getElementById("template-id");
+      templateId.value = targetId;
+    });
 
   </script>
 </body>

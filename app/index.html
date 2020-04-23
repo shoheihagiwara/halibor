@@ -56,10 +56,16 @@
     const { remote } = require('electron')
     const { app, Menu, MenuItem, BrowserWindow } = remote
 
+    // maybe there is a better way, but only way I can come up with as of now.
+    // this variable keeps track of which template was context menu was shown on,
+    // so that template ID can be passed to a child window
+    let contextMenuTargetTemplate = null;
+
     // this is context menu
     const contextMenu = new Menu();
     contextMenu.append(new MenuItem({
-      label: 'New template', click: (menuItem, browserWindow, event) => {
+      label: 'New template',
+      click: (menuItem, browserWindow, event) => {
         // show modale template creation window
         const newTemplateWin = new BrowserWindow({
           parent: browserWindow,
@@ -73,11 +79,37 @@
         newTemplateWin.once('ready-to-show', () => {
           newTemplateWin.show()
         })
+        newTemplateWin.once('close', () => {
+          onClipboardClicked();
+        });
       }
     }));
     contextMenu.append(new MenuItem({ label: 'Edit' }));
     contextMenu.append(new MenuItem({ type: 'separator' }));
-    contextMenu.append(new MenuItem({ label: 'Delete' }));
+    contextMenu.append(new MenuItem({
+      label: 'Delete',
+      click: (menuItem, browserWindow, event) => {
+        // show delete confirmation 
+        const deleteWin = new BrowserWindow({
+          parent: browserWindow,
+          modal: true,
+          show: false,
+          webPreferences: {
+            nodeIntegration: true,
+          },
+        });
+        deleteWin.loadFile(path.join(__dirname, 'delete_template.html'))
+        deleteWin.once('ready-to-show', () => {
+          deleteWin.show();
+          console.log("index.html: ready-to-show: sending display: targetId: ", contextMenuTargetTemplate);
+          
+          deleteWin.webContents.send('display', { targetId: contextMenuTargetTemplate })
+        });
+        deleteWin.once('close', () => {
+          onClipboardClicked();
+        });
+      }
+    }));
 
     const appDataDirPath = app.getPath('userData');
 
@@ -148,8 +180,11 @@
         for (let li of Array.from(ul.children)) {
           console.log("adding lister to li: ", li);
           li.addEventListener("contextmenu", event => {
+            contextMenuTargetTemplate = li.id;
+            console.log("index.html: contextmenu clicked: setting contextMenuTargetTemplate: ", contextMenuTargetTemplate);
             // pop context menu
             contextMenu.popup({ windows: remote.getCurrentWindow() })
+
           })
         }
       }
