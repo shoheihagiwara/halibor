@@ -14,7 +14,7 @@
 <body>
   <input id="template-id" type="text" value="" hidden>
   <label for="template">Delete Template</label><br>
-  <textarea name="template" id="template" rows="10" style="width: 100%;" required readonly></textarea>
+  <textarea name="template" id="template" rows="10" style="width: 100%;" required></textarea>
   <section style="text-align: right;">
     <input id="delete-button" type="button" value="Delete">
     <input id="cancel-button" type="button" value="Cancel">
@@ -59,22 +59,6 @@
       console.log("delete_template.html: display: targetId: ", targetId);
       const templateId = document.getElementById("template-id");
       templateId.value = targetId;
-
-      // now that ID is known, let's retrieve and show template too.
-      db.get("SELECT text FROM template WHERE id = ?;", targetId, (error, row) => {
-
-        // on error
-        if (error) {
-          console.log("error when selecting: ", error);
-          return;
-        }
-
-        // on success
-        const template = document.getElementById("template")
-        template.value = row.text;
-
-      });
-
     });
 
   </script>
