@@ -84,7 +84,30 @@
         });
       }
     }));
-    contextMenu.append(new MenuItem({ label: 'Edit' }));
+    contextMenu.append(new MenuItem({
+      label: 'Edit',
+      click: (menuItem, browserWindow, event) => {
+        // show edit window
+        const deleteWin = new BrowserWindow({
+          parent: browserWindow,
+          modal: true,
+          show: false,
+          webPreferences: {
+            nodeIntegration: true,
+          },
+        });
+        deleteWin.loadFile(path.join(__dirname, 'delete_template.html'))
+        deleteWin.once('ready-to-show', () => {
+          deleteWin.show();
+          console.log("index.html: ready-to-show: sending display: targetId: ", contextMenuTargetTemplate);
+
+          deleteWin.webContents.send('display', { targetId: contextMenuTargetTemplate })
+        });
+        deleteWin.once('close', () => {
+          onClipboardClicked();
+        });
+      }
+    }));
     contextMenu.append(new MenuItem({ type: 'separator' }));
     contextMenu.append(new MenuItem({
       label: 'Delete',
@@ -102,7 +125,7 @@
         deleteWin.once('ready-to-show', () => {
           deleteWin.show();
           console.log("index.html: ready-to-show: sending display: targetId: ", contextMenuTargetTemplate);
-          
+
           deleteWin.webContents.send('display', { targetId: contextMenuTargetTemplate })
         });
         deleteWin.once('close', () => {
@@ -207,6 +230,15 @@
 
     ipcRenderer.on('clipboard', (event) => {
       selectListFromDBAndAddToList(selectFromClipboard);
+    });
+
+    ipcRenderer.on("search", (event, { query }) => {
+      console.log("index.html: search: query: ", query);
+      // FIX: this is not very good. this allows sql injection. probably won't do any harm because the db is a local db,
+      // so the worst that can happen is the user accidentally delete all the data and no harm done to other users or service as a whole.
+      // But it's not a good practice.
+      const searchClipboard = `SELECT Id , text FROM clipboard WHERE text LIKE '%${query}%' ORDER BY id DESC;`
+      selectListFromDBAndAddToList(searchClipboard);
     });
   </script>
 </body>

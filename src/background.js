@@ -1,10 +1,11 @@
 'use strict'
 
 import clipboardListener from 'clipboard-event';
-import { app, BrowserWindow, clipboard, ipcMain } from 'electron';
+import { app, BrowserWindow, clipboard, ipcMain, Menu, MenuItem } from 'electron';
 import ioHook from 'iohook';
 import sqlite3 from 'sqlite3';
 import path from 'path';
+import { create } from 'domain';
 
 sqlite3.verbose();
 
@@ -32,7 +33,7 @@ clipboardListener.on('change', () => {
   console.log('Clipboard changed');
   let content = clipboard.readText();
   console.log("content: ", content);
-  let sql = 
+  let sql =
     `INSERT INTO clipboard(text) 
      SELECT text
      FROM (SELECT ? AS text) AS temp
@@ -54,9 +55,10 @@ let mainWindow = null;
 let ctrlPressedLast = null;
 let ctrlReleasedLast = null;
 
+
 ioHook.on('keyup', event => {
   console.log(Date.now(), event);
-  
+
   if (event.keycode === keyCodeCtrl) {
     ctrlReleasedLast = Date.now();
   }
@@ -70,10 +72,10 @@ ioHook.on('keydown', event => {
     let ctrlPressedNow = Date.now();
     let sinceCtrlPressedLast = ctrlPressedNow - ctrlPressedLast;
     let sinceCtrlReleasedLast = ctrlPressedNow - ctrlReleasedLast;
-    
+
     // only show when pressed twice quickly (<300ms)
-    if (sinceCtrlPressedLast  < 300 &&
-        sinceCtrlReleasedLast < 300) {
+    if (sinceCtrlPressedLast < 300 &&
+      sinceCtrlReleasedLast < 300) {
       createWindowIfNotExists();
     }
 
@@ -101,6 +103,28 @@ function createWindowIfNotExists() {
     alwaysOnTop: true,
   })
 
+  // add seacrch. activated by ctrl+shift+f
+  const menu = new Menu();
+  menu.append(new MenuItem({
+    label: "Search",
+    accelerator: "Ctrl+Shift+F",
+    click: () => {
+      // show modale search window
+      const newTemplateWin = new BrowserWindow({
+        parent: mainWindow,
+        modal: true,
+        show: false,
+        webPreferences: {
+          nodeIntegration: true,
+        },
+      });
+      newTemplateWin.loadFile(path.join(__dirname, 'search_window.html'));
+      newTemplateWin.once('ready-to-show', () => {
+        newTemplateWin.show()
+      })
+    }
+  }));
+  mainWindow.setMenu(menu);
 
   // and load the index.html of the app.
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
@@ -109,6 +133,7 @@ function createWindowIfNotExists() {
   // send list to the windows
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.send('clipboard');
+    mainWindow.webContents.openDevTools();
   });
 
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
@@ -122,7 +147,7 @@ function createWindowIfNotExists() {
 
   mainWindow.on('blur', () => {
     console.log('event blur emitted.');
-    
+
     if (mainWindow.getChildWindows().length > 0) {
       return;
     }
@@ -179,3 +204,9 @@ app.on('activate', () => {
 ipcMain.on('close', (event, arg) => {
   mainWindow.close();
 });
+
+ipcMain.on("search", (event, arg) => {
+  console.log("arg", arg);
+  
+  mainWindow.webContents.send("search", arg);
+})
