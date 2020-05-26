@@ -2,245 +2,284 @@
 <html>
 
 <head>
-  <meta charset="UTF-8">
-  <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-  <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-TTpDKWhMyt5FMOOIGNJsC3d0WKkarzVlGMvJBx2tub8="> -->
-  <!-- <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'sha256-TTpDKWhMyt5FMOOIGNJsC3d0WKkarzVlGMvJBx2tub8="> -->
-  <title>Hello World!</title>
-  <style>
-    li {
-      list-style-type: decimal;
-    }
-
-    li:hover {
-      background-color: silver;
-    }
-
-    /* Add a black background color to the top navigation */
-    .topnav {
-      background-color: #333;
-      overflow: hidden;
-      text-align: center;
-    }
-
-    /* Style the links inside the navigation bar */
-    .topnav a {
-      float: left;
-      color: #f2f2f2;
-      text-align: center;
-      padding: 14px 16px;
-      text-decoration: none;
-      font-size: 17px;
-    }
-
-    /* Change the color of links on hover */
-    .topnav a:hover {
-      background-color: #ddd;
-      color: black;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-TTpDKWhMyt5FMOOIGNJsC3d0WKkarzVlGMvJBx2tub8="> -->
+    <!-- <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'sha256-TTpDKWhMyt5FMOOIGNJsC3d0WKkarzVlGMvJBx2tub8="> -->
+    <title>Hello World!</title>
+    <style>
+        li {
+            list-style-type: decimal;
+        }
+        
+        li:hover {
+            background-color: silver;
+        }
+        /* Add a black background color to the top navigation */
+        
+        .topnav {
+            background-color: #333;
+            overflow: hidden;
+            text-align: center;
+        }
+        /* Style the links inside the navigation bar */
+        
+        .topnav a {
+            float: left;
+            color: #f2f2f2;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+            font-size: 17px;
+        }
+        /* Change the color of links on hover */
+        
+        .topnav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+    </style>
 </head>
 
 <body>
-  <div class="topnav">
-    <a onmouseover="onClipboardClicked()">Clipboard</a>
-    <a onmouseover="onTemplateClicked()">Template</a>
-  </div>
-  <ul id="list"></ul>
+    <div class="topnav">
+        <a onmouseover="onClipboardClicked()">Clipboard</a>
+        <a id="category-template" onmouseover="onTemplateClicked()">Template</a>
+    </div>
+    <ul id="list"></ul>
 
-  <!-- You can also require other files to run in this process -->
-  <script type="text/javascript">
-    const { ipcRenderer, clipboard } = require('electron');
-    const sqlite3 = require('sqlite3');
-    const path = require('path');
-    const { remote } = require('electron')
-    const { app, Menu, MenuItem, BrowserWindow } = remote
+    <!-- You can also require other files to run in this process -->
+    <script type="text/javascript">
+        const {
+            ipcRenderer,
+            clipboard
+        } = require('electron');
+        const sqlite3 = require('sqlite3');
+        const path = require('path');
+        const {
+            remote
+        } = require('electron')
+        const {
+            app,
+            Menu,
+            MenuItem,
+            BrowserWindow
+        } = remote
 
-    // maybe there is a better way, but only way I can come up with as of now.
-    // this variable keeps track of which template was context menu was shown on,
-    // so that template ID can be passed to a child window
-    let contextMenuTargetTemplate = null;
+        // maybe there is a better way, but only way I can come up with as of now.
+        // this variable keeps track of which template was context menu was shown on,
+        // so that template ID can be passed to a child window
+        let contextMenuTargetTemplate = null;
 
-    // this is context menu
-    const contextMenu = new Menu();
-    contextMenu.append(new MenuItem({
-      label: 'New template',
-      click: (menuItem, browserWindow, event) => {
-        // show modale template creation window
-        const newTemplateWin = new BrowserWindow({
-          parent: browserWindow,
-          modal: true,
-          show: false,
-          webPreferences: {
-            nodeIntegration: true,
-          },
-        });
-        newTemplateWin.loadFile(path.join(__dirname, 'new_template.html'));
-        newTemplateWin.once('ready-to-show', () => {
-          newTemplateWin.show()
-        })
-        newTemplateWin.once('close', () => {
-          onClipboardClicked();
-        });
-      }
-    }));
-    contextMenu.append(new MenuItem({
-      label: 'Edit',
-      click: (menuItem, browserWindow, event) => {
-        // show edit window
-        const deleteWin = new BrowserWindow({
-          parent: browserWindow,
-          modal: true,
-          show: false,
-          webPreferences: {
-            nodeIntegration: true,
-          },
-        });
-        deleteWin.loadFile(path.join(__dirname, 'delete_template.html'))
-        deleteWin.once('ready-to-show', () => {
-          deleteWin.show();
-          console.log("index.html: ready-to-show: sending display: targetId: ", contextMenuTargetTemplate);
-
-          deleteWin.webContents.send('display', { targetId: contextMenuTargetTemplate })
-        });
-        deleteWin.once('close', () => {
-          onClipboardClicked();
-        });
-      }
-    }));
-    contextMenu.append(new MenuItem({ type: 'separator' }));
-    contextMenu.append(new MenuItem({
-      label: 'Delete',
-      click: (menuItem, browserWindow, event) => {
-        // show delete confirmation 
-        const deleteWin = new BrowserWindow({
-          parent: browserWindow,
-          modal: true,
-          show: false,
-          webPreferences: {
-            nodeIntegration: true,
-          },
-        });
-        deleteWin.loadFile(path.join(__dirname, 'delete_template.html'))
-        deleteWin.once('ready-to-show', () => {
-          deleteWin.show();
-          console.log("index.html: ready-to-show: sending display: targetId: ", contextMenuTargetTemplate);
-
-          deleteWin.webContents.send('display', { targetId: contextMenuTargetTemplate })
-        });
-        deleteWin.once('close', () => {
-          onClipboardClicked();
-        });
-      }
-    }));
-
-    const appDataDirPath = app.getPath('userData');
-
-    const db = new sqlite3.Database(path.join(appDataDirPath, 'sqlite.db'), error => {
-      if (error !== null) {
-        console.log(error);
-      }
-    });
-
-    function selectListFromDBAndAddToList(selectQuery, optFunc) {
-
-      console.log("SQL: ", selectQuery);
-
-      db.serialize(() => {
-        db.all(selectQuery, (error, rows) => {
-          // on error
-          if (error) {
-            console.log(`error when selecting: SQL[${selectQuery}] Error[${error}]`);
-            return;
-          }
-
-          // on success, extract id and text, and make an array
-          const arrayOfIdAndText = rows.map(row => [row.id, row.text]);
-
-          // get ul
-          const ul = document.getElementById("list");
-          ul.innerHTML = "";
-
-          arrayOfIdAndText.forEach(idText => {
-            let item = document.createElement('li');
-            const id = idText[0];
-            item.setAttribute("id", id);
-
-            // show only the first 30 letters.
-            const text = idText[1];
-            const charNumInList = 30;
-            item.onclick = function () { onSelectListItem(text); };
-            item.textContent = text.substring(0, charNumInList) + (text.length > charNumInList ? '...' : '');
-
-            // show more on tooltip
-            const charNumInTooltip = 200;
-            item.setAttribute('title', text.substring(0, charNumInTooltip))
-
-            ul.appendChild(item);
-          });
-
-          if (optFunc) {
-            optFunc()
-          }
-        });
-      });
-    }
-
-    function onSelectListItem(text) {
-      console.log(`item clicked. adding text to clipboard: [${text}]`);
-      clipboard.writeText(text);
-      ipcRenderer.send('close', null);
-    }
-
-    function onTemplateClicked() {
-
-      let prepareContextMenu = () => {
-
-        console.log("hagi: preparing context menu");
-
-        // add event listener to show context menu for deleting and editing
-        const ul = document.getElementById('list');
-        for (let li of Array.from(ul.children)) {
-          console.log("adding lister to li: ", li);
-          li.addEventListener("contextmenu", event => {
-            contextMenuTargetTemplate = li.id;
-            console.log("index.html: contextmenu clicked: setting contextMenuTargetTemplate: ", contextMenuTargetTemplate);
-            // pop context menu
-            contextMenu.popup({ windows: remote.getCurrentWindow() })
-
-          })
+        function makeNewTemplateContextMenu() {
+            return new MenuItem({
+                label: 'New template',
+                click: (menuItem, browserWindow, event) => {
+                    // show modale template creation window
+                    const newTemplateWin = new BrowserWindow({
+                        parent: browserWindow,
+                        modal: true,
+                        show: false,
+                        webPreferences: {
+                            nodeIntegration: true,
+                        },
+                    });
+                    newTemplateWin.loadFile(path.join(__dirname, 'new_template.html'));
+                    newTemplateWin.once('ready-to-show', () => {
+                        newTemplateWin.show()
+                    })
+                    newTemplateWin.once('close', () => {
+                        onClipboardClicked();
+                    });
+                }
+            })
         }
-      }
 
-      console.log("hagi: before calling function");
+        // this is context menu
+        const contextMenu = new Menu();
+        contextMenu.append(makeNewTemplateContextMenu());
+        contextMenu.append(new MenuItem({
+            label: 'Edit',
+            click: (menuItem, browserWindow, event) => {
+                // show edit window
+                const deleteWin = new BrowserWindow({
+                    parent: browserWindow,
+                    modal: true,
+                    show: false,
+                    webPreferences: {
+                        nodeIntegration: true,
+                    },
+                });
+                deleteWin.loadFile(path.join(__dirname, 'delete_template.html'))
+                deleteWin.once('ready-to-show', () => {
+                    deleteWin.show();
+                    console.log("index.html: ready-to-show: sending display: targetId: ", contextMenuTargetTemplate);
 
-      // make list and set eventLister to it for context menu.
-      selectListFromDBAndAddToList(
-        "SELECT id, text FROM template ORDER BY id ASC;",
-        prepareContextMenu
-      );
+                    deleteWin.webContents.send('display', {
+                        targetId: contextMenuTargetTemplate
+                    })
+                });
+                deleteWin.once('close', () => {
+                    onClipboardClicked();
+                });
+            }
+        }));
+        contextMenu.append(new MenuItem({
+            type: 'separator'
+        }));
+        contextMenu.append(new MenuItem({
+            label: 'Delete',
+            click: (menuItem, browserWindow, event) => {
+                // show delete confirmation 
+                const deleteWin = new BrowserWindow({
+                    parent: browserWindow,
+                    modal: true,
+                    show: false,
+                    webPreferences: {
+                        nodeIntegration: true,
+                    },
+                });
+                deleteWin.loadFile(path.join(__dirname, 'delete_template.html'))
+                deleteWin.once('ready-to-show', () => {
+                    deleteWin.show();
+                    console.log("index.html: ready-to-show: sending display: targetId: ", contextMenuTargetTemplate);
 
-      console.log("hagi: after calling function");
-    }
+                    deleteWin.webContents.send('display', {
+                        targetId: contextMenuTargetTemplate
+                    })
+                });
+                deleteWin.once('close', () => {
+                    onClipboardClicked();
+                });
+            }
+        }));
 
-    const selectFromClipboard = "SELECT id, text FROM clipboard ORDER BY id DESC;";
-    function onClipboardClicked() {
-      selectListFromDBAndAddToList(selectFromClipboard);
-    }
+        const appDataDirPath = app.getPath('userData');
 
-    ipcRenderer.on('clipboard', (event) => {
-      selectListFromDBAndAddToList(selectFromClipboard);
-    });
+        const db = new sqlite3.Database(path.join(appDataDirPath, 'sqlite.db'), error => {
+            if (error !== null) {
+                console.log(error);
+            }
+        });
 
-    ipcRenderer.on("search", (event, { query }) => {
-      console.log("index.html: search: query: ", query);
-      // FIX: this is not very good. this allows sql injection. probably won't do any harm because the db is a local db,
-      // so the worst that can happen is the user accidentally delete all the data and no harm done to other users or service as a whole.
-      // But it's not a good practice.
-      const searchClipboard = `SELECT Id , text FROM clipboard WHERE text LIKE '%${query}%' ORDER BY id DESC;`
-      selectListFromDBAndAddToList(searchClipboard);
-    });
-  </script>
+        function selectListFromDBAndAddToList(selectQuery, optFunc) {
+
+            console.log("SQL: ", selectQuery);
+
+            db.serialize(() => {
+                db.all(selectQuery, (error, rows) => {
+                    // on error
+                    if (error) {
+                        console.log(`error when selecting: SQL[${selectQuery}] Error[${error}]`);
+                        return;
+                    }
+
+                    // on success, extract id and text, and make an array
+                    const arrayOfIdAndText = rows.map(row => [row.id, row.text]);
+
+                    // get ul
+                    const ul = document.getElementById("list");
+                    ul.innerHTML = "";
+
+                    arrayOfIdAndText.forEach(idText => {
+                        let item = document.createElement('li');
+                        const id = idText[0];
+                        item.setAttribute("id", id);
+
+                        // show only the first 30 letters.
+                        const text = idText[1];
+                        const charNumInList = 30;
+                        item.onclick = function() {
+                            onSelectListItem(text);
+                        };
+                        item.textContent = text.substring(0, charNumInList) + (text.length > charNumInList ? '...' : '');
+
+                        // show more on tooltip
+                        const charNumInTooltip = 200;
+                        item.setAttribute('title', text.substring(0, charNumInTooltip))
+
+                        ul.appendChild(item);
+                    });
+
+                    if (optFunc) {
+                        optFunc()
+                    }
+                });
+            });
+        }
+
+        function onSelectListItem(text) {
+            console.log(`item clicked. adding text to clipboard: [${text}]`);
+            clipboard.writeText(text);
+            ipcRenderer.send('close', null);
+        }
+
+        function onTemplateClicked() {
+
+            let prepareContextMenu = () => {
+
+                console.log("hagi: preparing context menu");
+
+                // add event listener to show context menu for deleting and editing
+                const ul = document.getElementById('list');
+                for (let li of Array.from(ul.children)) {
+                    console.log("adding lister to li: ", li);
+                    li.addEventListener("contextmenu", event => {
+                        contextMenuTargetTemplate = li.id;
+                        console.log("index.html: contextmenu clicked: setting contextMenuTargetTemplate: ", contextMenuTargetTemplate);
+                        // pop context menu
+                        contextMenu.popup({
+                            windows: remote.getCurrentWindow()
+                        })
+
+                    })
+                }
+            }
+
+            console.log("hagi: before calling function");
+
+            // make list and set eventLister to it for context menu.
+            selectListFromDBAndAddToList(
+                "SELECT id, text FROM template ORDER BY id ASC;",
+                prepareContextMenu
+            );
+
+            console.log("hagi: after calling function");
+        }
+
+        // add context menu to template title.
+        const categoryTemplate = document.getElementById("category-template");
+        categoryTemplate.addEventListener("contextmenu", event => {
+            const contextMenuForTemplateTitle = new Menu();
+            contextMenuForTemplateTitle.append(makeNewTemplateContextMenu());
+
+            // pop context menu
+            contextMenuForTemplateTitle.popup({
+                windows: remote.getCurrentWindow()
+            })
+        })
+
+        const selectFromClipboard = "SELECT id, text FROM clipboard ORDER BY id DESC;";
+
+        function onClipboardClicked() {
+            selectListFromDBAndAddToList(selectFromClipboard);
+        }
+
+        ipcRenderer.on('clipboard', (event) => {
+            selectListFromDBAndAddToList(selectFromClipboard);
+        });
+
+        ipcRenderer.on("search", (event, {
+            query
+        }) => {
+            console.log("index.html: search: query: ", query);
+            // FIX: this is not very good. this allows sql injection. probably won't do any harm because the db is a local db,
+            // so the worst that can happen is the user accidentally delete all the data and no harm done to other users or service as a whole.
+            // But it's not a good practice.
+            const searchClipboard = `SELECT Id , text FROM clipboard WHERE text LIKE '%${query}%' ORDER BY id DESC;`
+            selectListFromDBAndAddToList(searchClipboard);
+        });
+    </script>
 </body>
 
 </html>
