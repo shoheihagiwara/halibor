@@ -12,7 +12,7 @@
             list-style-type: decimal;
         }
         
-        li:hover {
+        li:focus {
             background-color: silver;
         }
         /* Add a black background color to the top navigation */
@@ -34,7 +34,7 @@
         }
         /* Change the color of links on hover */
         
-        .topnav a:hover {
+        .topnav a:focus {
             background-color: #ddd;
             color: black;
         }
@@ -43,8 +43,8 @@
 
 <body>
     <div class="topnav">
-        <a onmouseover="onClipboardClicked()">Clipboard</a>
-        <a id="category-template" onmouseover="onTemplateClicked()">Template</a>
+        <a id="category-clipboard" tabindex="0" onfocus="onClipboardClicked()">Clipboard</a>
+        <a id="category-template" tabindex="0" onfocus="onTemplateClicked()">Template</a>
     </div>
     <ul id="list"></ul>
 
@@ -185,13 +185,19 @@
                         let item = document.createElement('li');
                         const id = idText[0];
                         item.setAttribute("id", id);
+                        item.setAttribute("tabindex", 0);
 
                         // show only the first 30 letters.
                         const text = idText[1];
                         const charNumInList = 30;
-                        item.onclick = function() {
-                            onSelectListItem(text);
+                        item.onkeydown = function(e) {
+                            if (e.key === "Enter") {
+                                onSelectListItem(text);
+                            }
                         };
+                        item.onclick = function(e) {
+                            onSelectListItem(text);
+                        }
                         item.textContent = text.substring(0, charNumInList) + (text.length > charNumInList ? '...' : '');
 
                         // show more on tooltip
@@ -241,10 +247,14 @@
             // make list and set eventLister to it for context menu.
             selectListFromDBAndAddToList(
                 "SELECT id, text FROM template ORDER BY id ASC;",
-                prepareContextMenu
+                () => {
+                    prepareContextMenu();
+                    addArrowKeyNavForList(document.getElementById("list"));
+                }
             );
 
             console.log("hagi: after calling function");
+
         }
 
         // add context menu to template title.
@@ -262,7 +272,9 @@
         const selectFromClipboard = "SELECT id, text FROM clipboard ORDER BY id DESC;";
 
         function onClipboardClicked() {
-            selectListFromDBAndAddToList(selectFromClipboard);
+            selectListFromDBAndAddToList(selectFromClipboard, () => {
+                addArrowKeyNavForList(document.getElementById("list"))
+            });
         }
 
         ipcRenderer.on('clipboard', (event) => {
@@ -277,8 +289,85 @@
             // so the worst that can happen is the user accidentally delete all the data and no harm done to other users or service as a whole.
             // But it's not a good practice.
             const searchClipboard = `SELECT Id , text FROM clipboard WHERE text LIKE '%${query}%' ORDER BY id DESC;`
-            selectListFromDBAndAddToList(searchClipboard);
+            selectListFromDBAndAddToList(searchClipboard, () => {
+                addArrowKeyNavForList(document.getElementById("list"))
+            });
         });
+
+        /* arrow key nagivation
+        
+        1. Start: focus on "Clipboard" title.
+
+        2. When focus is on "Clipboard": > will move focus on "Template", v will go down, ^ and < will not do anything.
+        3. When focus is on "Template":  < will move focus on "Clipboard", v will go down, ^ and < will not do anything.
+        4. When focus is on an item of the list: ^ will move up, v will move down, < will focus on "Clipboard", > will focus on "Template".
+        */
+
+        // 1.
+        const categoryClipboard = document.getElementById("category-clipboard");
+        categoryClipboard.focus();
+
+        // 2, 3.
+        function addArrowKeyNavForTitle(titleElement) {
+            titleElement.addEventListener("keydown", event => {
+                switch (event.key) {
+                    case "ArrowRight":
+                        categoryTemplate.focus();
+                        break;
+                    case "ArrowLeft":
+                        event.preventDefault();
+                        categoryClipboard.focus();
+                        break;
+                    case "ArrowDown":
+                        event.preventDefault();
+                        const list = document.getElementById("list");
+                        list.children[0].focus();
+                        break;
+                    default:
+                        break;
+                }
+            });
+        }
+        addArrowKeyNavForTitle(categoryClipboard);
+        addArrowKeyNavForTitle(categoryTemplate);
+
+        // 4.
+        function addArrowKeyNavForList(list) {
+            for (let index = 0; index < list.children.length; index++) {
+                let li = list.children[index];
+                li.addEventListener("keydown", event => {
+                    console.log("keyevent: ", event.key)
+                    switch (event.key) {
+                        case "ArrowUp":
+                            event.preventDefault();
+                            console.log("arrow up", "index", index);
+                            if (index > 0) {
+                                list.children[index - 1].focus();
+                            }
+                            break;
+                        case "ArrowDown":
+                            event.preventDefault();
+                            console.log("arrow down", "index", index);
+                            if (index < list.children.length - 1) {
+                                list.children[index + 1].focus();
+                            }
+                            break;
+                        case "ArrowRight":
+                            console.log("arrow right", "index", index);
+                            categoryTemplate.focus();
+                            break;
+                        case "ArrowLeft":
+                            console.log("arrow lfet", "index", index);
+                            categoryClipboard.focus();
+                            break;
+                        case "Enter":
+                            list.children[index].id
+                        default:
+                            break;
+                    }
+                });
+            }
+        }
     </script>
 </body>
 

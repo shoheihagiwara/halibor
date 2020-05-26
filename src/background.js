@@ -110,26 +110,34 @@ function createWindowIfNotExists() {
         const template = [{
             label: 'Electron',
             submenu: [{
-                label: 'Search',
-                accelerator: 'Ctrl+Shift+F',
-                click: () => {
-                    console.log("searching!");
+                    label: 'Search',
+                    accelerator: 'Ctrl+Shift+F',
+                    click: () => {
+                        console.log("searching!");
 
-                    // show modale search window
-                    const newTemplateWin = new BrowserWindow({
-                        parent: mainWindow,
-                        modal: true,
-                        show: false,
-                        webPreferences: {
-                            nodeIntegration: true,
-                        },
-                    });
-                    newTemplateWin.loadFile(path.join(__dirname, 'search_window.html'));
-                    newTemplateWin.once('ready-to-show', () => {
-                        newTemplateWin.show()
-                    })
+                        // show modale search window
+                        const newTemplateWin = new BrowserWindow({
+                            parent: mainWindow,
+                            modal: true,
+                            show: false,
+                            webPreferences: {
+                                nodeIntegration: true,
+                            },
+                        });
+                        newTemplateWin.loadFile(path.join(__dirname, 'search_window.html'));
+                        newTemplateWin.once('ready-to-show', () => {
+                            newTemplateWin.show()
+                        })
+                    }
+                },
+                {
+                    label: "Toggle DevTools",
+                    accelerator: "Alt+CmdOrCtrl+I",
+                    click: () => {
+                        BrowserWindow.getFocusedWindow().toggleDevTools();
+                    }
                 }
-            }]
+            ]
         }];
         console.log("menu added!", process.platform);
         Menu.setApplicationMenu(Menu.buildFromTemplate(template));
@@ -187,7 +195,6 @@ function createWindowIfNotExists() {
         }
         mainWindow.close();
     });
-
 }
 
 
