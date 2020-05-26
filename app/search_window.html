@@ -6,13 +6,11 @@
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-TTpDKWhMyt5FMOOIGNJsC3d0WKkarzVlGMvJBx2tub8="> -->
     <!-- <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'sha256-TTpDKWhMyt5FMOOIGNJsC3d0WKkarzVlGMvJBx2tub8="> -->
-    <title>New Template</title>
-    <style>
-    </style>
+    <title>Search</title>
 </head>
 
 <body>
-    <label for="template">Search: </label><br>
+    <label for="query">Search: </label><br>
     <input type="text" name="query" id="query">
     <section style="text-align: right;">
         <input id="search-button" type="button" value="Search">
@@ -22,7 +20,10 @@
     <script>
         const path = require("path");
         const sqlite3 = require("sqlite3");
-        const { remote, ipcRenderer } = require("electron");
+        const {
+            remote,
+            ipcRenderer
+        } = require("electron");
         const app = remote.app;
         const currWin = remote.getCurrentWindow();
         const db = new sqlite3.Database(path.join(app.getPath("userData"), 'sqlite.db'), error => {
@@ -35,7 +36,9 @@
         const searchButton = document.getElementById("search-button");
         searchButton.addEventListener("click", () => {
             const query = document.getElementById("query");
-            ipcRenderer.send("search", {query: query.value});
+            ipcRenderer.send("search", {
+                query: query.value
+            });
             currWin.close();
         });
 
@@ -45,6 +48,9 @@
             currWin.close();
         });
 
+        // focus on search box
+        const searchTextbox = document.getElementById("query");
+        searchTextbox.focus();
     </script>
 </body>
 
